@@ -1,16 +1,49 @@
 
+"ppm_dlc_dmg_mod","1" enable/disable damage modifiers,
+
+"ppm_dlc_dmg_hvh","1" for non ponies damaging non ponies
+
+"ppm_dlc_dmg_evh","1.125" for earth ponies damaging non ponies
+
+"ppm_dlc_dmg_uvh","0.875" for pegasi and unicorns damaging non ponies
+
+"ppm_dlc_dmg_hve","0.875" for non ponies damaging earth ponies
+
+"ppm_dlc_dmg_eve","1" for earth ponies damaging earth ponies
+
+"ppm_dlc_dmg_uve","0.75" for pegasi and unicorns damaging earth ponies
+
+"ppm_dlc_dmg_hvu","1.125" for non ponies damaging pegasi and unicorns
+
+"ppm_dlc_dmg_evu","1.25" for earth ponies damaging pegasi and unicorns
+
+"ppm_dlc_dmg_uvu","1" for pegasi and unicorns damaging pegasi and unicorns
+
+
+
+
+
+|
+
 'ppm_dlc_teleprot_delay','3'
 
 how many seconds does a player have to wait after they teleport before they can teleport again?
+
+|
 
 'ppm_dlc_teleport_distance','100',
 
 how many meters can you go when teleporting?
 
+|
+
 'ppm_dlc_fall_immunity','3',
 
 how many seconds after teleporting or droping out of flight is a player immune to fall damage?(run ppm_dlc_refresh after changing)
 
+|
+
+|
 
 these convars decide the default behavior of certain actions
 
@@ -20,7 +53,7 @@ if set to 1, updating your pony type via concommand will work unless the corresp
 
 otherwise it won't work unless the hook returns true
 
-
+|
 
 'ppm_dlc_choice_allow','1'
 
@@ -28,7 +61,7 @@ if set to 1, alicorns can specify what ability they want unless the correspondin
 
 otherwise it won't work unless the hook returns true
 
-
+|
 
 'ppm_dlc_teleport_allow','1'
 
@@ -36,7 +69,7 @@ if set to 1, unicorns teleportation will work unless the corresponding hook retu
 
 otherwise it won't work unless the hook returns true
 
-
+|
 
 'ppm_dlc_flight_allow','1'
 
@@ -44,11 +77,13 @@ if set to 1, pegasus flight will work unless the corresponding hook returns fals
 
 otherwise it won't work unless the hook returns true
 
+|
 
-
+|
 
 return a boolean on these hooks to overide what the corresponding convar says
 
+|
 
 'ppm_dlc_concmd_allow' can players update their ponytype with a console command?
 
@@ -58,7 +93,7 @@ return true to allow, even if the cvar is set to 0
 
 return false to block, even if the cvar is set to 1
 
-
+|
 
 'ppm_dlc_choice_allow','1' can alicorns can specify what ability they want?
 
@@ -68,7 +103,7 @@ return true to allow, even if the cvar is set to 0
 
 return false to block, even if the cvar is set to 1
 
-
+|
 
 'ppm_dlc_teleport_allow','1' can unicorns teleport?
 
@@ -78,7 +113,7 @@ return false to block, even if the cvar is set to 1
 
 arguments: the player
 
-
+|
 
 'ppm_dlc_flight_allow','1' can pegasi fly?
 
@@ -88,8 +123,9 @@ return true to allow, even if the cvar is set to 0
 
 return false to block, even if the cvar is set to 1
 
+|
 
-
+|
 
 concommands
 
@@ -99,7 +135,7 @@ refreshes the addons's code
 
 need to be a superadmin or the server console
 
-
+|
 
 ppm_dlc_update
 

@@ -13,6 +13,18 @@ local allow_unicorn=CreateConVar("ppm_dlc_teleport_allow","1",FLAGS,[[if set to 
 otherwise it won't work unless hook.Run("ppm_dlc_teleport_allow",ply) returns true]]):GetBool()
 local allow_pegasus=CreateConVar("ppm_dlc_flight_allow","1",FLAGS,[[if set to 1, unicorns teleportation will unless hook.Run("ppm_dlc_flight_allow",ply) returns false
 otherwise it won't work unless hook.Run("ppm_dlc_flight_allow",ply) returns true]]):GetBool()
+
+local DMG_mod=CreateConVar("ppm_dlc_dmg_mod","1",FLAGS,[[enable/disable damage modifiers]]):GetBool()
+local DMG_hvh=CreateConVar("ppm_dlc_dmg_hvh","1",FLAGS,"damage modifier for non ponies damaging non ponies"):GetFloat()	--human on human 
+local DMG_evh=CreateConVar("ppm_dlc_dmg_evh","1.125",FLAGS,"damage modifier for earth ponies damaging non ponies"):GetFloat()	--earth pony on human
+local DMG_uvh=CreateConVar("ppm_dlc_dmg_uvh","0.875",FLAGS,"damage modifier for pegasi and unicorns damaging non ponies"):GetFloat()	--pegasus or unicorn on human
+local DMG_hve=CreateConVar("ppm_dlc_dmg_hve","0.875",FLAGS,"damage modifier for non ponies damaging earth ponies"):GetFloat()	--human on earth pony
+local DMG_eve=CreateConVar("ppm_dlc_dmg_eve","1",FLAGS,"damage modifier for earth ponies damaging earth ponies"):GetFloat()	--earth pony on earth pony
+local DMG_uve=CreateConVar("ppm_dlc_dmg_uve","0.75",FLAGS,"damage modifier for pegasi and unicorns damaging earth ponies"):GetFloat()	--pegasus or unicorn on earth pony
+local DMG_hvu=CreateConVar("ppm_dlc_dmg_hvu","1.125",FLAGS,"damage modifier for non ponies damaging pegasi and unicorns"):GetFloat()	--human on pegasus or unicorn
+local DMG_evu=CreateConVar("ppm_dlc_dmg_evu","1.25",FLAGS,"damage modifier for earth ponies damaging pegasi and unicorns"):GetFloat()	--earth pony on pegasus or unicorn
+local DMG_uvu=CreateConVar("ppm_dlc_dmg_uvu","1",FLAGS,"damage modifier for pegasi and unicorns damaging pegasi and unicorns"):GetFloat()	--pegasus or unicorn on pegasus or unicorn
+
 local ppm_models={--models associated with ppm
 	["models/cppm/player_default_base.mdl"]=true,
 	["models/cppm/player_default_base_nj.mdl"]=true,
@@ -22,7 +34,7 @@ local ppm_models={--models associated with ppm
 	["models/ppm/player_default_base_ragdoll.mdl"]=true,
 --	["models/ppm/player_mature_base.mdl"]=true,
 }
---[[ local BODYGROUP_HORN = 2 local BODYGROUP_WING = 3]]
+--local BODYGROUP_HORN,BODYGROUP_WING=2,3
 
 local earth={--a list of earth pony models
 	["models/applejack_npc.mdl"]=true,
@@ -67,11 +79,11 @@ local unicorns={--a list of unicorn models
 local alicorns={--a list of alicorn models
 	["models/celestia_player.mdl"]=true,
 	["models/luna_npc.mdl"]=true,
-	["models/luna_player.mdl"]=true,
+	["models/luna_player.mdl"]=true,--[[
 	["models/mlp/player_celestia.mdl"]=true,
 	["models/mlp/player_celestia_nj.mdl"]=true,
 	["models/mlp/player_luna.mdl"]=true,
-	["models/mlp/player_luna_nj.mdl"]=true,
+	["models/mlp/player_luna_nj.mdl"]=true,]]
 	["models/princesstwilight_player.mdl"]=true,
 	["models/princesstwilight_npc.mdl"]=true,
 }
@@ -143,7 +155,9 @@ function ppm_dlc.setponytype(self,arg)
 end
 if SERVER then
 	hook.Add("PlayerSpawn","ppm_dlc_hooks",function(self)
-		ppm_dlc.setponytype(self)
+		timer.Simple(0.1,function()
+			ppm_dlc.setponytype(self)
+		end)
 	end)
 	hook.Add("OnPlayerChangedTeam","ppm_dlc_hooks",function(self,old,new)
 		ppm_dlc.setponytype(self)
@@ -175,10 +189,8 @@ function ppm_dlc.unicorn_power(self)
 	local eyes = self:EyePos()
 	local ang = self:EyeAngles()
 	local fwd = ang:Forward()
-	
-	
+
 	local filter = {self}
-	
 	if self:IsPlayer() and self:InVehicle() and self:GetVehicle():IsValid() then
 		table.insert(filter, self:GetVehicle())
 	end
@@ -186,13 +198,16 @@ function ppm_dlc.unicorn_power(self)
 	if SERVER and self:IsPlayer() then
 		self:LagCompensation(true)
 	end
-	
 	local tr = util.TraceLine{
 		filter=filter,
 		start=eyes-fwd*2,
 		endpos = eyes+fwd*MAX_DISTANCE*40
 	}
-	
+	local check=util.TraceLine{--this trace is just to check if we are trying to go through a wall
+		filter=filter,
+		start=eyes+fwd*2,
+		endpos = eyes+fwd*3
+	}
 	if SERVER and self:IsPlayer() then
 		self:LagCompensation(false)
 	end
@@ -200,21 +215,44 @@ function ppm_dlc.unicorn_power(self)
 	local v=tr.HitNormal
 	local z=v.z
 --	print(math.Round(v.x,1),math.Round(v.y,1),math.Round(z,1))
---	if tr.HitPos.z>=self:GetPos().z+72 then--are they trying to go up more than one players height?
-	if math.Round(tr.HitNormal.z,1)<=0 then--
+	if check.StartSolid or check.Hit then--are trying to go through a wall?
+		tr.HitPos=self.OldPos or tr.HitPos--send them to their previous location
+		self:PrintMessage(HUD_PRINTTALK,"you were in a wall and teleported to your previous location")
+	elseif math.Round(tr.HitNormal.z,1)<0 then
 		tr.HitPos=tr.HitPos-Vector(0,0,72)*self:GetModelScale()--move the hitpos down by 72 Hammer units
-	else
+		self.OldPos=self:GetPos()--store their previous location on them
+	elseif math.Round(tr.HitNormal.z,1)>0 then
 		tr.HitPos=tr.HitPos+Vector(0,0,5)*self:GetModelScale()--move the hitpos up by 5 Hammer units
+		self.OldPos=self:GetPos()
+	else
+		self.OldPos=self:GetPos()
 	end
 	if self:InVehicle() then self:ExitVehicle() end
-	if tr.Fraction!=0 then
-		self:SetPos(tr.HitPos)
-	end
+	self.OldPos=self:GetPos()
+	self:SetPos(tr.HitPos)
 	timer.Create(ID.."Fall_immunity",Duration,1,function() end)
 	timer.Create(ID.."teleport_cooldown",DELAY,1,function() end)
 end
+
 if CLIENT then
-	return 
+	hook.Add("UpdateAnimation","ppm_dlc_hooks",function(ply, vel, maxseqgroundspeed)
+		local mdl=ply:GetModel()
+		if ply:GetMoveType() == MOVETYPE_FLY and ply:GetNWString("Flying","")!=mdl then
+			if ppm_models[mdl] then
+				if string.find(mdl,"cppm") then
+					ply:AnimRestartGesture( GESTURE_SLOT_CUSTOM, ACT_FLY, false )
+				end
+				ply:SetNWString("Flying",mdl)
+			elseif pegasi[mdl] or alicorns[mdl] then
+				ply:AnimRestartGesture( GESTURE_SLOT_CUSTOM, ACT_GMOD_NOCLIP_LAYER, false )
+				ply:SetNWString("Flying",mdl)
+			end
+		elseif ply:GetMoveType()!=MOVETYPE_FLY and ply:GetNWString("Flying","")!="" then
+			ply:SetNWString("Flying","")
+			ply:AnimResetGestureSlot( GESTURE_SLOT_CUSTOM )
+		end
+	end)
+	return
 end
 concommand.Add("ppm_dlc_refresh",function(ply,cmd,args)
 	if ply and ply:IsValid() and !ply:IsSuperAdmin() and !ply:IsListenServerHost() then return end
@@ -225,7 +263,6 @@ hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
 	local MOVETYPE=ply:GetMoveType()
 	if MOVETYPE==MOVETYPE_NOCLIP then return end
 	local ID=ply:SteamID64()
-	local EXIST=timer.Exists(ID.."doublespace")
 	local PONYTYPE=ply:GetNWInt("PONYTYPE",0)
 	if key==IN_WALK then
 		ply.teleport_charged=true
@@ -248,15 +285,14 @@ hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
 			if pegasi[mdl] or alicorns[mdl] then 
 				ply:SetBodygroup(1,1)
 			elseif ppm_models[mdl] then
-				local g=ply:GetBodygroup(3) 
-				if g==0 then
+				local g=ply:GetBodygroup(3)
+				if g==0 and string.find(mdl,"cppm") then
 					ply:SetBodygroup(3,2)
 				elseif g==3 then
 					ply:SetBodygroup(3,4)
 				end
 			end
-
-		elseif MOVETYPE==MOVETYPE_FLY and !EXIST then
+		elseif MOVETYPE==MOVETYPE_FLY and !timer.Exists(ID.."doublespace") then
 			timer.Create(ID.."doublespace",0.25,1,function() end)
 		elseif MOVETYPE==MOVETYPE_FLY then
 			ply:SetMoveType(MOVETYPE_WALK)
@@ -324,52 +360,35 @@ hook.Add("OnPlayerHitGround","ppm_dlc_hooks",function(ply)
 	end
 end)
 hook.Add("EntityTakeDamage","ppm_dlc_hooks",function(victim,CTakeDamageInfo)
+	if !DMG_mod then return end
 	local attack=CTakeDamageInfo:GetAttacker()
 	local weapon=CTakeDamageInfo:GetInflictor()
 	local attack_PONYTYPE=attack:GetNWInt("PONYTYPE",0)
 	local victim_PONYTYPE=victim:GetNWInt("PONYTYPE",0)
 
-	local DMG_0t0=1	--human on human 
-
-	local DMG_0t1=1.125	--earth pony on human
-
-	local DMG_0t2=0.875	--pegasus or unicorn on human
-
-	local DMG_1t0=0.875	--human on earth pony
-
-	local DMG_1t1=1	--earth pony on earth pony
-
-	local DMG_1t2=0.75	--pegasus or unicorn on earth pony
-
-	local DMG_2t0=1.125	--human on pegasus or unicorn
-
-	local DMG_2t1=1.25	--earth pony on pegasus or unicorn
-
-	local DMG_2t2=1	--pegasus or unicorn on pegasus or unicorn
-
 	if victim_PONYTYPE==0 then--non pony, no benefits or bad
 		if attack_PONYTYPE==0 then--human on human
---			CTakeDamageInfo:ScaleDamage(DMG_0t0)
+			CTakeDamageInfo:ScaleDamage(DMG_hvh)
 		elseif attack_PONYTYPE==1 then--earth pony on human
-			CTakeDamageInfo:ScaleDamage(DMG_0t1)
+			CTakeDamageInfo:ScaleDamage(DMG_evh)
 		else--pegasus or unicorn on human
-			CTakeDamageInfo:ScaleDamage(DMG_0t2)--pegasi and unicorns doing less damage to humans is a price to pay for improved mobility
+			CTakeDamageInfo:ScaleDamage(DMG_uvh)--pegasi and unicorns doing less damage to humans is a price to pay for improved mobility
 		end
 	elseif victim_PONYTYPE==1 then--earth pony
 		if attack_PONYTYPE==0 then--human on earth pony
-			CTakeDamageInfo:ScaleDamage(DMG_1t0)
+			CTakeDamageInfo:ScaleDamage(DMG_hve)
 		elseif attack_PONYTYPE==1 then--earth pony on earth pony
---			CTakeDamageInfo:ScaleDamage(DMG_1t1)
+			CTakeDamageInfo:ScaleDamage(DMG_eve)
 		else--pegasus or unicorn on earth pony
-			CTakeDamageInfo:ScaleDamage(DMG_1t2)--pegasi and unicorns doing less damage to earth ponies is a price to pay for improved mobility
+			CTakeDamageInfo:ScaleDamage(DMG_uve)--pegasi and unicorns doing less damage to earth ponies is a price to pay for improved mobility
 		end
 	else--pegasus or unicorn
 		if attack_PONYTYPE==0 then--human on pegasus or unicorn
-			CTakeDamageInfo:ScaleDamage(DMG_2t0)--pegasi and unicorns taking more damage from humans is a price to pay for improved mobility
+			CTakeDamageInfo:ScaleDamage(DMG_hvu)--pegasi and unicorns taking more damage from humans is a price to pay for improved mobility
 		elseif attack_PONYTYPE==1 then--earth pony on pegasus or unicorn
-			CTakeDamageInfo:ScaleDamage(DMG_2t1)--pegasi and unicorns taking more damage from earth ponies is a price to pay for improved mobility
+			CTakeDamageInfo:ScaleDamage(DMG_evu)--pegasi and unicorns taking more damage from earth ponies is a price to pay for improved mobility
 		else--pegasus or unicorn on pegasus or unicorn
---			CTakeDamageInfo:ScaleDamage(DMG_2t2)
+			CTakeDamageInfo:ScaleDamage(DMG_uvu)
 		end
 	end
 end)
