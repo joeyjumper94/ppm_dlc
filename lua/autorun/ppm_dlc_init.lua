@@ -3,8 +3,8 @@ local ppm_dlc=ppm_dlc or {}
 FLAGS={FCVAR_ARCHIVE,FCVAR_REPLICATED,FCVAR_SERVER_CAN_EXECUTE}
 local CONCMD=CreateConVar("ppm_dlc_concmd_allow","1",FLAGS,[[if set to 1, updating your pony type via concommand will work unless hook.Run("ppm_dlc_concmd_allow",ply) returns false
 otherwise it won't work unless hook.Run("ppm_dlc_concmd_allow",ply) returns true]]):GetBool()
-local CHOICE=CreateConVar("ppm_dlc_concmd_choice","1",FLAGS,[[if set to 1, alicorns can specify what ability they want hook.Run("ppm_dlc_concmd_choice",ply,type) returns false
-otherwise they can't work unless hook.Run("ppm_dlc_concmd_choice",ply,type) returns true]]):GetBool()
+local CHOICE=CreateConVar("ppm_dlc_choice_allow","1",FLAGS,[[if set to 1, alicorns can specify what ability they want hook.Run("ppm_dlc_choice_allow",ply,type) returns false
+otherwise they can't work unless hook.Run("ppm_dlc_choice_allow",ply,type) returns true]]):GetBool()
 local DELAY=CreateConVar("ppm_dlc_teleprot_delay","3",FLAGS,[[how many seconds does a player have to wait after they teleport before they can teleport again?]]):GetFloat()
 local MAX_DISTANCE = CreateConVar('ppm_dlc_teleport_distance','100',FLAGS,'how many meters can you go when teleporting?'):GetFloat()
 local Duration = CreateConVar('ppm_dlc_fall_immunity','3',FLAGS,[[how many seconds after teleporting slash droping out of flight is a player immune to fall damage?
@@ -106,7 +106,7 @@ function ppm_dlc.setponytype(self,arg)
 
 	local PONYTYPE=ppm_dlc.IsPony(self)
 
-	local HOOK=hook.Run("ppm_dlc_concmd_choice",self,arg)
+	local HOOK=hook.Run("ppm_dlc_choice_allow",self,arg)
 	local CAN=CHOICE and HOOK!=false or HOOK
 
 	if PONYTYPE==4 and arg and CAN then--alicorns can specify what type they want to be
@@ -217,7 +217,7 @@ if CLIENT then
 	return 
 end
 concommand.Add("ppm_dlc_refresh",function(ply,cmd,args)
-	if ply and ply:IsValid() and !ply:IsSuperAdmin() then return end
+	if ply and ply:IsValid() and !ply:IsSuperAdmin() and !ply:IsListenServerHost() then return end
 	include("autorun/ppm_dlc_init.lua")
 	BroadcastLua([[include("autorun/ppm_dlc_init.lua")]])
 end)
@@ -273,17 +273,7 @@ hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
 			end
 			timer.Create(ID.."Fall_immunity",Duration,1,function() end)
 		end
-	end--[[
-end)
-timer.Create("ppm_dlc_checking_ground",5,1,function()
-	for k,ply in ipairs(player.GetAll()) do
-		local MOVETYPE=ply:GetMoveType()
-		if MOVETYPE==MOVETYPE_FLY or MOVETYPE==MOVETYPE_FLYGRAVITY then
-			if util.TraceLine({start=ply:GetPos(),endpos=ply:GetPos()-Vector(0,0,30)}).Hit then
-				ply:SetMoveType(MOVETYPE_WALK)
-			end
-		end
-	end]]
+	end
 end)
 hook.Add( "KeyRelease", "ppm_dlc_hooks", function( ply, key )
 	if key==IN_WALK then
