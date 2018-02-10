@@ -1,3 +1,12 @@
+http://steamcommunity.com/sharedfiles/filedetails/?id=107155115
+
+if you get any PPM addons, the animation won't work unless you get CPPM and inject its models
+
+if you get CPPM, turn off cppm's flight by running "cppm_allowfly 1" into the server console
+
+|
+
+|
 
 "ppm_dlc_dmg_mod","1" enable/disable damage modifiers,
 
@@ -19,9 +28,7 @@
 
 "ppm_dlc_dmg_uvu","1" for pegasi and unicorns damaging pegasi and unicorns
 
-
-
-
+|
 
 |
 
@@ -107,11 +114,11 @@ return false to block, even if the cvar is set to 1
 
 'ppm_dlc_teleport_allow','1' can unicorns teleport?
 
+arguments: the player
+
 return true to allow, even if the cvar is set to 0
 
 return false to block, even if the cvar is set to 1
-
-arguments: the player
 
 |
 
