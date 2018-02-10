@@ -3,13 +3,19 @@
 
 how many seconds does a player have to wait after they teleport before they can teleport again?
 
+|
+
 'ppm_dlc_teleport_distance','100',
 
 how many meters can you go when teleporting?
 
+|
+
 'ppm_dlc_fall_immunity','3',
 
 how many seconds after teleporting or droping out of flight is a player immune to fall damage?(run ppm_dlc_refresh after changing)
+
+|
 
 |
 
