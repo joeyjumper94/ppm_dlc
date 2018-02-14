@@ -32,10 +32,9 @@ local ppm_models={--models associated with ppm
 	["models/ppm/player_default_base.mdl"]=true,
 	["models/ppm/player_default_base_nj.mdl"]=true,
 	["models/ppm/player_default_base_ragdoll.mdl"]=true,
---	["models/ppm/player_mature_base.mdl"]=true,
+--	["models/ppm/player_mature_base.mdl"]=true,--
 }
 --local BODYGROUP_HORN,BODYGROUP_WING=2,3
-
 local earth={--a list of earth pony models
 	["models/applejack_npc.mdl"]=true,
 	["models/applejack_player.mdl"]=true,
@@ -151,6 +150,7 @@ function ppm_dlc.setponytype(self,arg)
 		[3]=' unicorn',
 		[4]='n alicorn',
 	}
+	self.OldPos=self:GetPos()
 	self:PrintMessage(HUD_PRINTTALK,"you are now a"..types[self:GetNWInt("PONYTYPE",0)])
 end
 if SERVER then
@@ -160,7 +160,9 @@ if SERVER then
 		end)
 	end)
 	hook.Add("OnPlayerChangedTeam","ppm_dlc_hooks",function(self,old,new)
-		ppm_dlc.setponytype(self)
+		timer.Simple(0.1,function()
+			ppm_dlc.setponytype(self)
+		end)
 	end)
 end
 concommand.Add("ppm_dlc_update",function(ply,cmd,args)
@@ -189,8 +191,10 @@ function ppm_dlc.unicorn_power(self)
 	local eyes = self:EyePos()
 	local ang = self:EyeAngles()
 	local fwd = ang:Forward()
-
+	
+	
 	local filter = {self}
+	
 	if self:IsPlayer() and self:InVehicle() and self:GetVehicle():IsValid() then
 		table.insert(filter, self:GetVehicle())
 	end
@@ -198,16 +202,19 @@ function ppm_dlc.unicorn_power(self)
 	if SERVER and self:IsPlayer() then
 		self:LagCompensation(true)
 	end
+	
 	local tr = util.TraceLine{
 		filter=filter,
 		start=eyes-fwd*2,
 		endpos = eyes+fwd*MAX_DISTANCE*40
 	}
+
 	local check=util.TraceLine{--this trace is just to check if we are trying to go through a wall
 		filter=filter,
 		start=eyes+fwd*2,
 		endpos = eyes+fwd*3
 	}
+
 	if SERVER and self:IsPlayer() then
 		self:LagCompensation(false)
 	end
@@ -215,6 +222,7 @@ function ppm_dlc.unicorn_power(self)
 	local v=tr.HitNormal
 	local z=v.z
 --	print(math.Round(v.x,1),math.Round(v.y,1),math.Round(z,1))
+	
 	if check.StartSolid or check.Hit then--are trying to go through a wall?
 		tr.HitPos=self.OldPos or tr.HitPos--send them to their previous location
 		self:PrintMessage(HUD_PRINTTALK,"you were in a wall and teleported to your previous location")
@@ -227,12 +235,16 @@ function ppm_dlc.unicorn_power(self)
 	else
 		self.OldPos=self:GetPos()
 	end
+
 	if self:InVehicle() then self:ExitVehicle() end
+
 	self.OldPos=self:GetPos()
 	self:SetPos(tr.HitPos)
+
 	timer.Create(ID.."Fall_immunity",Duration,1,function() end)
 	timer.Create(ID.."teleport_cooldown",DELAY,1,function() end)
 end
+
 
 if CLIENT then
 	hook.Add("UpdateAnimation","ppm_dlc_hooks",function(ply, vel, maxseqgroundspeed)
@@ -292,6 +304,7 @@ hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
 					ply:SetBodygroup(3,4)
 				end
 			end
+
 		elseif MOVETYPE==MOVETYPE_FLY and !timer.Exists(ID.."doublespace") then
 			timer.Create(ID.."doublespace",0.25,1,function() end)
 		elseif MOVETYPE==MOVETYPE_FLY then
@@ -350,9 +363,17 @@ hook.Add("PlayerTick","ppm_dlc_hooks",function(ply,mv)
 	end
 end)
 hook.Add("OnPlayerHitGround","ppm_dlc_hooks",function(ply)
-		if pegasi[mdl] or alicorns[mdl] then 
-			ply:SetBodygroup(1,0)
+	local mdl=ply:GetModel()
+	if pegasi[mdl] or alicorns[mdl] then 
+		ply:SetBodygroup(1,0)
+	elseif ppm_models[mdl] then
+		local g=ply:GetBodygroup(3) 
+		if g==2 then
+			ply:SetBodygroup(3,0)
+		elseif g==4 then
+			ply:SetBodygroup(3,3)
 		end
+	end
 	local ID=ply:SteamID64().."Fall_immunity"
 	if timer.Exists(ID) then
 		timer.Remove(ID)
