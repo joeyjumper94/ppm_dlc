@@ -5,7 +5,7 @@ local CONCMD=CreateConVar("ppm_dlc_concmd_allow","1",FLAGS,[[if set to 1, updati
 otherwise it won't work unless hook.Run("ppm_dlc_concmd_allow",ply) returns true]]):GetBool()
 local CHOICE=CreateConVar("ppm_dlc_choice_allow","1",FLAGS,[[if set to 1, alicorns can specify what ability they want hook.Run("ppm_dlc_choice_allow",ply,type) returns false
 otherwise they can't work unless hook.Run("ppm_dlc_choice_allow",ply,type) returns true]]):GetBool()
-local DELAY=CreateConVar("ppm_dlc_teleprot_delay","3",FLAGS,[[how many seconds does a player have to wait after they teleport before they can teleport again?]]):GetFloat()
+local DELAY=CreateConVar("ppm_dlc_teleport_delay","3",FLAGS,[[how many seconds does a player have to wait after they teleport before they can teleport again?]]):GetFloat()
 local MAX_DISTANCE = CreateConVar('ppm_dlc_teleport_distance','100',FLAGS,'how many meters can you go when teleporting?'):GetFloat()
 local Duration = CreateConVar('ppm_dlc_fall_immunity','3',FLAGS,[[how many seconds after teleporting slash droping out of flight is a player immune to fall damage?
 run ppm_dlc_refresh after changing]]):GetFloat()
@@ -24,6 +24,7 @@ local DMG_uve=CreateConVar("ppm_dlc_dmg_uve","0.75",FLAGS,"damage modifier for p
 local DMG_hvu=CreateConVar("ppm_dlc_dmg_hvu","1.125",FLAGS,"damage modifier for non ponies damaging pegasi and unicorns"):GetFloat()	--human on pegasus or unicorn
 local DMG_evu=CreateConVar("ppm_dlc_dmg_evu","1.25",FLAGS,"damage modifier for earth ponies damaging pegasi and unicorns"):GetFloat()	--earth pony on pegasus or unicorn
 local DMG_uvu=CreateConVar("ppm_dlc_dmg_uvu","1",FLAGS,"damage modifier for pegasi and unicorns damaging pegasi and unicorns"):GetFloat()	--pegasus or unicorn on pegasus or unicorn
+--wow, I unwittingly spelled "huehuehue" somewhere in this file, can you find it?
 
 local ppm_models={--models associated with ppm
 	["models/cppm/player_default_base.mdl"]=true,
@@ -177,74 +178,83 @@ concommand.Add("ppm_dlc_update",function(ply,cmd,args)
 	timer.Create(ply:SteamID64().." ppm reload cooldown",3,1,function() end)
 end)
 function ppm_dlc.unicorn_power(self)
+	local HOOK,msg=hook.Run("ppm_dlc_teleport_allow",self)
 	local ID=self:SteamID64()
-	if CLIENT then
-		return 
+	if CLIENT then--serverside function only
+	elseif !allow_unicorn and HOOK!=true or HOOK==false then
+		self:PrintMessage(HUD_PRINTTALK,(msg or "you cannot teleport"))
 	elseif timer.Exists(ID.."teleport_cooldown") then
 		self:PrintMessage(HUD_PRINTTALK,"please wait "..math.Round(timer.TimeLeft(self:SteamID64().."teleport_cooldown"),2).." seconds before before trying to teleport again")
-		return
 	elseif self:GetNWInt("PONYTYPE",0)!=3 then
 		self:PrintMessage(HUD_PRINTTALK,"only those with unicorn powers can teleport")
-	end
-
-	local pos = self:GetPos()
-	local eyes = self:EyePos()
-	local ang = self:EyeAngles()
-	local fwd = ang:Forward()
-	
-	
-	local filter = {self}
-	
-	if self:IsPlayer() and self:InVehicle() and self:GetVehicle():IsValid() then
-		table.insert(filter, self:GetVehicle())
-	end
-	
-	if SERVER and self:IsPlayer() then
-		self:LagCompensation(true)
-	end
-	
-	local tr = util.TraceLine{
-		filter=filter,
-		start=eyes-fwd*2,
-		endpos = eyes+fwd*MAX_DISTANCE*40
-	}
-
-	local check=util.TraceLine{--this trace is just to check if we are trying to go through a wall
-		filter=filter,
-		start=eyes+fwd*2,
-		endpos = eyes+fwd*3
-	}
-
-	if SERVER and self:IsPlayer() then
-		self:LagCompensation(false)
-	end
-	
-	local v=tr.HitNormal
-	local z=v.z
---	print(math.Round(v.x,1),math.Round(v.y,1),math.Round(z,1))
-	
-	if check.StartSolid or check.Hit then--are trying to go through a wall?
-		tr.HitPos=self.OldPos or tr.HitPos--send them to their previous location
-		self:PrintMessage(HUD_PRINTTALK,"you were in a wall and teleported to your previous location")
-	elseif math.Round(tr.HitNormal.z,1)<0 then
-		tr.HitPos=tr.HitPos-Vector(0,0,72)*self:GetModelScale()--move the hitpos down by 72 Hammer units
-		self.OldPos=self:GetPos()--store their previous location on them
-	elseif math.Round(tr.HitNormal.z,1)>0 then
-		tr.HitPos=tr.HitPos+Vector(0,0,5)*self:GetModelScale()--move the hitpos up by 5 Hammer units
-		self.OldPos=self:GetPos()
 	else
+
+		local pos = self:GetPos()
+		local eyes = self:EyePos()
+		local ang = self:EyeAngles()
+		local fwd = ang:Forward()
+		
+		
+		local filter = {self}
+		
+		if self:IsPlayer() and self:InVehicle() and self:GetVehicle():IsValid() then
+			table.insert(filter, self:GetVehicle())
+		end
+		
+		if SERVER and self:IsPlayer() then
+			self:LagCompensation(true)
+		end
+		
+		local tr = util.TraceLine{
+			filter=filter,
+			start=eyes-fwd*2,
+			endpos = eyes+fwd*MAX_DISTANCE*40
+		}
+
+		local check=util.TraceLine{--this trace is just to check if we are trying to go through a wall
+			filter=filter,
+			start=eyes+fwd*2,
+			endpos = eyes+fwd*3
+		}
+
+		if SERVER and self:IsPlayer() then
+			self:LagCompensation(false)
+		end
+		
+		local v=tr.HitNormal
+		local z=v.z
+	--	print(math.Round(v.x,1),math.Round(v.y,1),math.Round(z,1))
+		
+		if check.StartSolid or check.Hit then--are trying to go through a wall?
+			tr.HitPos=self.OldPos or tr.HitPos--send them to their previous location
+			self:PrintMessage(HUD_PRINTTALK,"you were in a wall and teleported to your previous location")
+		elseif math.Round(tr.HitNormal.z,1)<0 then
+			tr.HitPos=tr.HitPos-Vector(0,0,72)*self:GetModelScale()--move the hitpos down by 72 Hammer units
+			self.OldPos=self:GetPos()--store their previous location on them
+		elseif math.Round(tr.HitNormal.z,1)>0 then
+			tr.HitPos=tr.HitPos+Vector(0,0,5)*self:GetModelScale()--move the hitpos up by 5 Hammer units
+			self.OldPos=self:GetPos()
+		else
+			self.OldPos=self:GetPos()
+		end
+
+		if self:InVehicle() then self:ExitVehicle() end
+
 		self.OldPos=self:GetPos()
+		self:SetPos(tr.HitPos)
+
+		timer.Create(ID.."Fall_immunity",Duration,1,function() end)
+		timer.Create(ID.."teleport_cooldown",DELAY,1,function() end)
 	end
-
-	if self:InVehicle() then self:ExitVehicle() end
-
-	self.OldPos=self:GetPos()
-	self:SetPos(tr.HitPos)
-
-	timer.Create(ID.."Fall_immunity",Duration,1,function() end)
-	timer.Create(ID.."teleport_cooldown",DELAY,1,function() end)
 end
 
+concommand.Add("ppm_dlc_teleport",function(ply,cmd,args)
+	if CLIENT then
+		RunConsoleCommand("cmd","ppm_dlc_teleport")
+		return
+	end
+	ppm_dlc.unicorn_power(ply)
+end)
 
 if CLIENT then
 	hook.Add("UpdateAnimation","ppm_dlc_hooks",function(ply, vel, maxseqgroundspeed)
@@ -280,8 +290,6 @@ hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
 		ply.teleport_charged=true
 	end
 	if key == IN_JUMP and PONYTYPE==3 then--3 means unicorn
-		local HOOK=hook.Run("ppm_dlc_teleport_allow",ply)
-		if !allow_unicorn and HOOK!=true or HOOK==false then return end
 		if ply.teleport_charged or !ply:IsOnGround() then
 			ppm_dlc.unicorn_power(ply)
 			ply.teleport_charged=nil

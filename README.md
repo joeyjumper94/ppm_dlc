@@ -32,7 +32,7 @@ if you get CPPM, turn off cppm's flight by running "cppm_allowfly 1" into the se
 
 |
 
-'ppm_dlc_teleprot_delay','3'
+'ppm_dlc_teleport_delay','3'
 
 how many seconds does a player have to wait after they teleport before they can teleport again?
 
