@@ -1,4 +1,5 @@
 AddCSLuaFile()
+
 local ppm_dlc=ppm_dlc or {}
 FLAGS={FCVAR_ARCHIVE,FCVAR_REPLICATED,FCVAR_SERVER_CAN_EXECUTE}
 local CONCMD=CreateConVar("ppm_dlc_concmd_allow","1",FLAGS,[[if set to 1, updating your pony type via concommand will work unless hook.Run("ppm_dlc_concmd_allow",ply) returns false
@@ -47,8 +48,14 @@ local earth={--a list of earth pony models
 	["models/pinkiepie_npc.mdl"]=true,
 	["models/roseluck_player.mdl"]=true,
 	["models/roseluck_npc.mdl"]=true,
+
+	["models/applepierce_player.mdl"]=true,
+	["models/zemospie_player.mdl"]=true,
+	["models/lilaflash_player.mdl"]=true,
+	["models/applengineer_player.mdl"]=true,
+	["models/yarnspinner_player.mdl"]=true,
 }
-local pegasi={--a list of pegasus models
+local pegasus={--a list of pegasus models (wings closed by default)
 	["models/daringdoo_npc.mdl"]=true,
 	["models/daringdoo_player.mdl"]=true,
 	["models/derpyhooves_npc.mdl"]=true,
@@ -61,7 +68,44 @@ local pegasi={--a list of pegasus models
 	["models/raindrops_npc.mdl"]=true,
 	["models/spitfire_player.mdl"]=true,
 	["models/spitfire_npc.mdl"]=true,
+
+	["models/dashe.mdl"]=true,
+	["models/spectrum_the_goddamed_horse_playermodel.mdl"]=true,
+
+	["models/angelhooves_player.mdl"]=true,
+	["models/fluttersaint_player.mdl"]=true,
+	["models/rainbowgat_player.mdl"]=true,
+	["models/colorshy_player.mdl"]=true,
+	["models/derpyhooves_dress_player.mdl"]=true,
+	["models/googlechrome_player.mdl"]=true,
+	["models/midnightblossom_player.mdl"]=true,
+	["models/evestormrider_player.mdl"]=true,
 }
+local pegasus_invert={--a list of pegasus models (wings open by default)
+	["models/spectrum_the_goddamed_horse_playermodel.mdl"]=true,
+	["models/blueflower_player.mdl"]=true,
+	["models/click_player.mdl"]=true,
+	["models/mintytwister_player.mdl"]=true,
+	["models/rillakim_player.mdl"]=true,
+	["models/springflower_player.mdl"]=true,
+	["models/springfloweruni_player.mdl"]=true,
+	["models/starlightsubscyed_player.mdl"]=true,
+	["models/toxicsoul_player.mdl"]=true,
+	["models/bluedust_player.mdl"]=true,
+	["models/flamerunner_male_player.mdl"]=true,
+	["models/flamerunner_player.mdl"]=true,
+	["models/grayspout_player.mdl"]=true,
+	["models/nick_player.mdl"]=true,
+	["models/polishprince_player.mdl"]=true,
+	["models/snowdash_player.mdl"]=true,
+	["models/thunderdasher_player.mdl"]=true,
+	["models/rainbowscout_player.mdl"]=true,
+	["models/yin_player.mdl"]=true,
+	["models/yang_player.mdl"]=true,
+	["models/ravenshadowdash_player.mdl"]=true,
+	["models/duskhappiness_turret_player.mdl"]=true,
+}
+
 local unicorns={--a list of unicorn models
 	["models/colgate_npc.mdl"]=true,
 	["models/colgate_player.mdl"]=true,
@@ -75,17 +119,29 @@ local unicorns={--a list of unicorn models
 	["models/twilightsparkle_player.mdl"]=true,
 	["models/vinyl_npc.mdl"]=true,
 	["models/vinyl_player.mdl"]=true,
+	
+	["models/player/blackjack.mdl"]=true,
+	["models/colgate.mdl"]=true,
+	["models/modded.mdl"]=true,
+	["models/treblemaker_player.mdl"]=true,
+	["models/midnightflare_player.mdl"]=true,
+	["models/midnightshade_player.mdl"]=true,
+	["models/themaster_player.mdl"]=true,
+	["models/pewdiepie_player.mdl"]=true,
+	["models/violetrecord_player.mdl"]=true,
+	["models/kinziesparkle_player.mdl"]=true,
+	["models/shaity_player.mdl"]=true,
+	["models/askan_player.mdl"]=true,
 }
 local alicorns={--a list of alicorn models
 	["models/celestia_player.mdl"]=true,
 	["models/luna_npc.mdl"]=true,
-	["models/luna_player.mdl"]=true,--[[
-	["models/mlp/player_celestia.mdl"]=true,
-	["models/mlp/player_celestia_nj.mdl"]=true,
-	["models/mlp/player_luna.mdl"]=true,
-	["models/mlp/player_luna_nj.mdl"]=true,]]
+	["models/luna_player.mdl"]=true,
 	["models/princesstwilight_player.mdl"]=true,
 	["models/princesstwilight_npc.mdl"]=true,
+	["models/twilance_player.mdl"]=true,
+
+	
 }
 
 function ppm_dlc.HasWings(self)
@@ -108,17 +164,17 @@ function ppm_dlc.IsPony(self)
 			return 1
 		elseif alicorns[mdl] then return 4
 		elseif unicorns[mdl] then return 3
-		elseif pegasi[mdl] then return 2
+		elseif pegasus[mdl] or pegasus_invert[mdl] then return 2
 		elseif earth[mdl] then return 1
 		end
 	end
 	return 0
 end
-function ppm_dlc.setponytype(self,arg)
+function ppm_dlc.setponytype(ply,arg)
 
-	local PONYTYPE=ppm_dlc.IsPony(self)
+	local PONYTYPE=ppm_dlc.IsPony(ply)
 
-	local HOOK=hook.Run("ppm_dlc_choice_allow",self,arg)
+	local HOOK=hook.Run("ppm_dlc_choice_allow",ply,arg)
 	local CAN=CHOICE and HOOK!=false or HOOK
 
 	if PONYTYPE==4 and arg and CAN then--alicorns can specify what type they want to be
@@ -127,19 +183,25 @@ function ppm_dlc.setponytype(self,arg)
 		PONYTYPE=math.random(1,3)--alicorns will get a random selection of earth pony, pegasus, or unicorn powers
 	end
 		
-	self:SetNWInt("PONYTYPE",PONYTYPE)
+	ply:SetNWInt("PONYTYPE",PONYTYPE)
 	
-	if self:GetMoveType()==MOVETYPE_FLY and PONYTYPE!=2 then--they changed out of pegasus while flying
-		self:SetMoveType(MOVETYPE_WALK)--ground them
-		local mdl=self:GetModel()
-		if pegasi[mdl] or alicorns[mdl] then 
-			self:SetBodygroup(1,0)
+	if ply:GetMoveType()==MOVETYPE_FLY and PONYTYPE!=2 then--they changed out of pegasus while flying
+		ply:SetMoveType(MOVETYPE_WALK)--ground them
+		local mdl=ply:GetModel()
+		if mdl=="models/spectrum_the_goddamed_horse_playermodel.mdl" then
+			ply:SetBodygroup(2,1)
+		elseif mdl=="models/dashe.mdl" then
+			ply:SetBodygroup(3,0)
+		elseif pegasus[mdl] or alicorns[mdl] then 
+			ply:SetBodygroup(1,0)
+		elseif pegasus_invert[mdl] then 
+			ply:SetBodygroup(1,1)
 		elseif ppm_models[mdl] then
-			local g=self:GetBodygroup(3)--3 is the wings of PPM wings 
+			local g=ply:GetBodygroup(3)--3 is the wings of PPM wings 
 			if g==2 then
-				self:SetBodygroup(3,0)
+				ply:SetBodygroup(3,0)
 			elseif g==4 then
-				self:SetBodygroup(3,3)
+				ply:SetBodygroup(3,3)
 			end
 		end
 	end
@@ -151,8 +213,8 @@ function ppm_dlc.setponytype(self,arg)
 		[3]=' unicorn',
 		[4]='n alicorn',
 	}
-	self.OldPos=self:GetPos()
-	self:PrintMessage(HUD_PRINTTALK,"you are now a"..types[self:GetNWInt("PONYTYPE",0)])
+	ply.OldPos=ply:GetPos()
+	ply:PrintMessage(HUD_PRINTTALK,"you are now a"..types[ply:GetNWInt("PONYTYPE",0)])
 end
 if SERVER then
 	hook.Add("PlayerSpawn","ppm_dlc_hooks",function(self)
@@ -265,7 +327,7 @@ if CLIENT then
 					ply:AnimRestartGesture( GESTURE_SLOT_CUSTOM, ACT_FLY, false )
 				end
 				ply:SetNWString("Flying",mdl)
-			elseif pegasi[mdl] or alicorns[mdl] then
+			elseif pegasus[mdl] or pegasus_invert[mdl] or alicorns[mdl] then
 				ply:AnimRestartGesture( GESTURE_SLOT_CUSTOM, ACT_GMOD_NOCLIP_LAYER, false )
 				ply:SetNWString("Flying",mdl)
 			end
@@ -302,8 +364,14 @@ hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
 		if MOVETYPE==MOVETYPE_WALK then
 			ply:SetMoveType(MOVETYPE_FLY)
 			local mdl=ply:GetModel()
-			if pegasi[mdl] or alicorns[mdl] then 
+			if mdl=="models/spectrum_the_goddamed_horse_playermodel.mdl" then
+				ply:SetBodygroup(2,0)
+			elseif mdl=="models/dashe.mdl" then
+				ply:SetBodygroup(3,1)
+			elseif pegasus[mdl] or alicorns[mdl] then 
 				ply:SetBodygroup(1,1)
+			elseif pegasus_invert[mdl] then 
+				ply:SetBodygroup(1,0)
 			elseif ppm_models[mdl] then
 				local g=ply:GetBodygroup(3)
 				if g==0 and string.find(mdl,"cppm") then
@@ -318,8 +386,14 @@ hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
 		elseif MOVETYPE==MOVETYPE_FLY then
 			ply:SetMoveType(MOVETYPE_WALK)
 			local mdl=ply:GetModel()
-			if pegasi[mdl] or alicorns[mdl] then 
+			if mdl=="models/spectrum_the_goddamed_horse_playermodel.mdl" then
+				ply:SetBodygroup(2,1)
+			elseif mdl=="models/dashe.mdl" then
+				ply:SetBodygroup(3,0)
+			elseif pegasus[mdl] or alicorns[mdl] then 
 				ply:SetBodygroup(1,0)
+			elseif pegasus_invert[mdl] then 
+				ply:SetBodygroup(1,1)
 			elseif ppm_models[mdl] then
 				local g=ply:GetBodygroup(3) 
 				if g==2 then
@@ -332,6 +406,7 @@ hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
 		end
 	end
 end)
+
 hook.Add( "KeyRelease", "ppm_dlc_hooks", function( ply, key )
 	if key==IN_WALK then
 		ply.teleport_charged=nil
@@ -358,8 +433,15 @@ hook.Add("PlayerTick","ppm_dlc_hooks",function(ply,mv)
 	if ply:IsOnGround() or ply:WaterLevel() >= 2 then
 		ply:SetMoveType(MOVETYPE_WALK)
 		local mdl=ply:GetModel()
-		if pegasi[mdl] or alicorns[mdl] then 
+
+		if mdl=="models/spectrum_the_goddamed_horse_playermodel.mdl" then
+			ply:SetBodygroup(2,1)
+		elseif mdl=="models/dashe.mdl" then
+			ply:SetBodygroup(3,0)
+		elseif pegasus[mdl] or alicorns[mdl] then 
 			ply:SetBodygroup(1,0)
+		elseif pegasus_invert[mdl] then 
+			ply:SetBodygroup(1,1)
 		elseif ppm_models[mdl] then
 			local g=ply:GetBodygroup(3) 
 			if g==2 then
@@ -372,8 +454,14 @@ hook.Add("PlayerTick","ppm_dlc_hooks",function(ply,mv)
 end)
 hook.Add("OnPlayerHitGround","ppm_dlc_hooks",function(ply)
 	local mdl=ply:GetModel()
-	if pegasi[mdl] or alicorns[mdl] then 
+	if mdl=="models/spectrum_the_goddamed_horse_playermodel.mdl" then
+		ply:SetBodygroup(2,1)
+	elseif mdl=="models/dashe.mdl" then
+		ply:SetBodygroup(3,0)
+	elseif pegasus[mdl] or alicorns[mdl] then 
 		ply:SetBodygroup(1,0)
+	elseif pegasus_invert[mdl] then 
+		ply:SetBodygroup(1,1)
 	elseif ppm_models[mdl] then
 		local g=ply:GetBodygroup(3) 
 		if g==2 then
