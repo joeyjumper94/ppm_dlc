@@ -302,8 +302,9 @@ function ppm_dlc.unicorn_power(self)
 
 		if self:InVehicle() then self:ExitVehicle() end
 
-		self.OldPos=self:GetPos()
-		self:SetPos(tr.HitPos)
+		timer.Simple(0,function()--delay by one frame so that certain sit addons won't interfere
+			self:SetPos(tr.HitPos)
+		end)
 
 		timer.Create(ID.."Fall_immunity",Duration,1,function() end)
 		timer.Create(ID.."teleport_cooldown",DELAY,1,function() end)
