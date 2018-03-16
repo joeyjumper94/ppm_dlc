@@ -8,7 +8,7 @@ local CHOICE=CreateConVar("ppm_dlc_choice_allow","1",FLAGS,[[if set to 1, alicor
 otherwise they can't work unless hook.Run("ppm_dlc_choice_allow",ply,type) returns true]]):GetBool()
 local DELAY=CreateConVar("ppm_dlc_teleport_delay","3",FLAGS,[[how many seconds does a player have to wait after they teleport before they can teleport again?]]):GetFloat()
 local MAX_DISTANCE = CreateConVar('ppm_dlc_teleport_distance','100',FLAGS,'how many meters can you go when teleporting?'):GetFloat()
-local Duration = CreateConVar('ppm_dlc_fall_immunity','3',FLAGS,[[how many seconds after teleporting slash droping out of flight is a player immune to fall damage?
+local Duration = CreateConVar('ppm_dlc_fall_immunity','2',FLAGS,[[how many seconds after teleporting slash droping out of flight is a player immune to fall damage?
 run ppm_dlc_refresh after changing]]):GetFloat()
 local allow_unicorn=CreateConVar("ppm_dlc_teleport_allow","1",FLAGS,[[if set to 1, unicorns teleportation will unless hook.Run("ppm_dlc_teleport_allow",ply) returns false
 otherwise it won't work unless hook.Run("ppm_dlc_teleport_allow",ply) returns true]]):GetBool()
@@ -171,63 +171,67 @@ function ppm_dlc.IsPony(self)
 	return 0
 end
 function ppm_dlc.setponytype(ply,arg)
+	if ply and ply:IsValid() then
+		local PONYTYPE=ppm_dlc.IsPony(ply)
 
-	local PONYTYPE=ppm_dlc.IsPony(ply)
+		local HOOK=hook.Run("ppm_dlc_choice_allow",ply,arg)
+		local CAN=CHOICE and HOOK!=false or HOOK
 
-	local HOOK=hook.Run("ppm_dlc_choice_allow",ply,arg)
-	local CAN=CHOICE and HOOK!=false or HOOK
-
-	if PONYTYPE==4 and arg and CAN then--alicorns can specify what type they want to be
-		PONYTYPE=math.Clamp(arg,1,3)
-	elseif PONYTYPE==4 then
-		PONYTYPE=math.random(1,3)--alicorns will get a random selection of earth pony, pegasus, or unicorn powers
-	end
+		if PONYTYPE==4 and arg and CAN then--alicorns can specify what type they want to be
+			PONYTYPE=math.Clamp(arg,1,3)
+		elseif PONYTYPE==4 then
+			PONYTYPE=math.random(1,3)--alicorns will get a random selection of earth pony, pegasus, or unicorn powers
+		end
+			
+		ply:SetNWInt("PONYTYPE",PONYTYPE)
 		
-	ply:SetNWInt("PONYTYPE",PONYTYPE)
-	
-	if ply:GetMoveType()==MOVETYPE_FLY and PONYTYPE!=2 then--they changed out of pegasus while flying
-		ply:SetMoveType(MOVETYPE_WALK)--ground them
-		local mdl=ply:GetModel()
-		if mdl=="models/spectrum_the_goddamed_horse_playermodel.mdl" then
-			ply:SetBodygroup(2,1)
-		elseif mdl=="models/dashe.mdl" then
-			ply:SetBodygroup(3,0)
-		elseif pegasus[mdl] or alicorns[mdl] then 
-			ply:SetBodygroup(1,0)
-		elseif pegasus_invert[mdl] then 
-			ply:SetBodygroup(1,1)
-		elseif ppm_models[mdl] then
-			local g=ply:GetBodygroup(3)--3 is the wings of PPM wings 
-			if g==2 then
+		if !ply:IsPlayer() then return end
+		
+		if ply:GetMoveType()==MOVETYPE_FLY and PONYTYPE!=2 then--they changed out of pegasus while flying
+			ply:SetMoveType(MOVETYPE_WALK)--ground them
+			local mdl=ply:GetModel()
+			if mdl=="models/spectrum_the_goddamed_horse_playermodel.mdl" then
+				ply:SetBodygroup(2,1)
+			elseif mdl=="models/dashe.mdl" then
 				ply:SetBodygroup(3,0)
-			elseif g==4 then
-				ply:SetBodygroup(3,3)
+			elseif pegasus[mdl] or alicorns[mdl] then 
+				ply:SetBodygroup(1,0)
+			elseif pegasus_invert[mdl] then 
+				ply:SetBodygroup(1,1)
+			elseif ppm_models[mdl] then
+				local g=ply:GetBodygroup(3)--3 is the wings of PPM wings 
+				if g==2 then
+					ply:SetBodygroup(3,0)
+				elseif g==4 then
+					ply:SetBodygroup(3,3)
+				end
 			end
 		end
+		
+		local types={
+			[0]=" nonpony",
+			[1]='n earth pony',
+			[2]=' pegasus',
+			[3]=' unicorn',
+			[4]='n alicorn',
+		}
+		ply.OldPos=ply:GetPos()
+		ply:PrintMessage(HUD_PRINTTALK,"you are now a"..types[ply:GetNWInt("PONYTYPE",0)])
 	end
-	
-	local types={
-		[0]=" nonpony",
-		[1]='n earth pony',
-		[2]=' pegasus',
-		[3]=' unicorn',
-		[4]='n alicorn',
-	}
-	ply.OldPos=ply:GetPos()
-	ply:PrintMessage(HUD_PRINTTALK,"you are now a"..types[ply:GetNWInt("PONYTYPE",0)])
 end
 if SERVER then
-	hook.Add("PlayerSpawn","ppm_dlc_hooks",function(self)
+	hook.Add("PlayerSpawn","_ppm_dlc_hooks",function(self)
 		timer.Simple(0.1,function()
 			ppm_dlc.setponytype(self)
 		end)
 	end)
-	hook.Add("OnPlayerChangedTeam","ppm_dlc_hooks",function(self,old,new)
+	hook.Add("OnPlayerChangedTeam","_ppm_dlc_hooks",function(self,old,new)
 		timer.Simple(0.1,function()
 			ppm_dlc.setponytype(self)
 		end)
 	end)
 end
+
 concommand.Add("ppm_dlc_update",function(ply,cmd,args)
 	if !ply:IsValid() then print'this is for players in game' return end
 	local HOOK=hook.Run("ppm_dlc_cmd",ply)
@@ -320,7 +324,7 @@ concommand.Add("ppm_dlc_teleport",function(ply,cmd,args)
 end)
 
 if CLIENT then
-	hook.Add("UpdateAnimation","ppm_dlc_hooks",function(ply, vel, maxseqgroundspeed)
+	hook.Add("UpdateAnimation","_ppm_dlc_hooks",function(ply, vel, maxseqgroundspeed)
 		local mdl=ply:GetModel()
 		if ply:GetMoveType() == MOVETYPE_FLY and ply:GetNWString("Flying","")!=mdl then
 			if ppm_models[mdl] then
@@ -344,7 +348,7 @@ concommand.Add("ppm_dlc_refresh",function(ply,cmd,args)
 	include("autorun/ppm_dlc_init.lua")
 	BroadcastLua([[include("autorun/ppm_dlc_init.lua")]])
 end)
-hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
+hook.Add( "KeyPress", "_ppm_dlc_hooks", function( ply, key )
 	local MOVETYPE=ply:GetMoveType()
 	if MOVETYPE==MOVETYPE_NOCLIP then return end
 	local ID=ply:SteamID64()
@@ -408,12 +412,12 @@ hook.Add( "KeyPress", "ppm_dlc_hooks", function( ply, key )
 	end
 end)
 
-hook.Add( "KeyRelease", "ppm_dlc_hooks", function( ply, key )
+hook.Add("KeyRelease", "_ppm_dlc_hooks", function( ply, key )
 	if key==IN_WALK then
 		ply.teleport_charged=nil
 	end
 end)
-hook.Add("PlayerTick","ppm_dlc_hooks",function(ply,mv)
+hook.Add("PlayerTick","_ppm_dlc_hooks",function(ply,mv)
 	if ply:GetMoveType() != MOVETYPE_FLY then return end
 	local Velocity = ply:GetVelocity()
 	if ply:KeyDown(IN_JUMP) then
@@ -453,7 +457,7 @@ hook.Add("PlayerTick","ppm_dlc_hooks",function(ply,mv)
 		end
 	end
 end)
-hook.Add("OnPlayerHitGround","ppm_dlc_hooks",function(ply)
+hook.Add("OnPlayerHitGround","_ppm_dlc_hooks",function(ply)
 	local mdl=ply:GetModel()
 	if mdl=="models/spectrum_the_goddamed_horse_playermodel.mdl" then
 		ply:SetBodygroup(2,1)
@@ -477,7 +481,19 @@ hook.Add("OnPlayerHitGround","ppm_dlc_hooks",function(ply)
 		return true
 	end
 end)
-hook.Add("EntityTakeDamage","ppm_dlc_hooks",function(victim,CTakeDamageInfo)
+hook.Add("OnEntityCreated","_ppm_dlc_hooks",function(ent)
+    timer.Simple(0,function()
+		if ent and ent:IsValid() then
+			ppm_dlc.setponytype(ent)
+		end
+    end)
+end)
+hook.Add("Initialize","_ppm_dlc_hooks",function()
+	if CPPM then
+		RunConsoleCommand("cppm_allowfly","0")
+	end
+end)
+hook.Add("EntityTakeDamage","_ppm_dlc_hooks",function(victim,CTakeDamageInfo)
 	if !DMG_mod then return end
 	local attack=CTakeDamageInfo:GetAttacker()
 	local weapon=CTakeDamageInfo:GetInflictor()
