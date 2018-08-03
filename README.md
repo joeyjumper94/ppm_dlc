@@ -2,7 +2,7 @@ http://steamcommunity.com/sharedfiles/filedetails/?id=107155115
 
 if you get any PPM addons, the animation won't work unless you get CPPM and inject its models
 
-if you get CPPM, turn off cppm's flight by running "cppm_allowfly 0" into the server console
+if you get CPPM, turn off cppm's flight by running "cppm_allowfly 1" into the server console
 
 |
 
