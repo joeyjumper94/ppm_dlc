@@ -2,7 +2,7 @@ http://steamcommunity.com/sharedfiles/filedetails/?id=107155115
 
 if you get any PPM addons, the animation won't work unless you get CPPM and inject its models
 
-if you get CPPM, turn off cppm's flight by running "cppm_allowfly 0" into the server console
+if you get CPPM, turn off cppm's flight by running "cppm_allowfly 1" into the server console
 
 |
 
@@ -59,12 +59,6 @@ these convars decide the default behavior of certain actions
 if set to 1, updating your pony type via concommand will work unless the corresponding hook returns false
 
 otherwise it won't work unless the hook returns true
-
-|
-
-'ppm_dlc_alicorn_chance','1'
-
-what percentage of the time does a pony with wings and a horn get designated as an alicorn?
 
 |
 
