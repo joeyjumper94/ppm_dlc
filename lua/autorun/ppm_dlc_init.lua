@@ -284,9 +284,9 @@ function ppm_dlc.setponytype(ply,arg)
 		HOOK=hook.Run("ppm_dlc_choice_allow",ply,arg)
 	end
 	local CAN=CHOICE and HOOK!=false or HOOK
-	if PONYTYPE==4 and math.Rand(1,100)>alicorn_chance and false then
-		if arg and CAN then--alicorns can specify what type they want to be
-			PONYTYPE=math.Clamp(arg,1,3)
+	if PONYTYPE==4 and math.Rand(1,100)>alicorn_chance then
+		if arg and CAN and arg>0 and arg<4 then--alicorns can specify what type they want to be
+			PONYTYPE=arg
 		else
 			PONYTYPE=math.random(1,3)--alicorns will get a random selection of earth pony, pegasus, or unicorn powers
 		end
